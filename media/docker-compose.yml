@@ -25,8 +25,8 @@ services:
       - TZ=America/Santiago
     volumes:
       - sonarr_config:/config
-      - /mnt/media:/media
-      - /mnt/torrents:/downloads
+      - ./media:/media
+      - ./torrents:/downloads
     ports:
       - 8989:8989
     restart: unless-stopped
@@ -41,8 +41,8 @@ services:
       - TZ=America/Santiago
     volumes:
       - radarr_config:/config
-      - /mnt/media:/media
-      - /mnt/torrents:/downloads
+      - ./media:/media
+      - ./torrents:/downloads
     ports:
       - 7878:7878
     restart: unless-stopped
