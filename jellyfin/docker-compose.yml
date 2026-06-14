@@ -6,7 +6,7 @@ services:
     volumes:
       - jellyfin_config:/config
       - jellyfin_cache:/cache
-      - /mnt/media:/media:ro
+      - ../media/data/media:/data/media:ro
     restart: unless-stopped
 
 volumes:

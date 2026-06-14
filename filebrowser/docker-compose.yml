@@ -1,0 +1,16 @@
+services:
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    container_name: filebrowser
+    volumes:
+      - filebrowser_data:/database
+      - filebrowser_config:/config
+      - ../media/data/media:/data/media:ro
+      - ../media/data/downloads:/data/downloads:rw
+    ports:
+      - 8080:80
+    restart: unless-stopped
+
+volumes:
+  filebrowser_data:
+  filebrowser_config:
