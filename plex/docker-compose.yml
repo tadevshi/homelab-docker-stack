@@ -1,0 +1,27 @@
+services:
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - VERSION=docker
+      # PLEX_CLAIM is intentionally omitted; claim via https://app.plex.tv/claim
+      # using the token printed in `docker logs plex` (window ~4 minutes).
+    volumes:
+      - plex_config:/config
+      - ../media/data/media:/data/media:ro
+    ports:
+      - 32400:32400
+      - 3005:3005
+      - 8324:8324
+      - 1900:1900/udp
+      - 32410:32410/udp
+      - 32412:32412/udp
+      - 32413:32413/udp
+      - 32414:32414/udp
+    restart: unless-stopped
+
+volumes:
+  plex_config:

@@ -1,72 +1,76 @@
-version: "3.8"
-
 services:
   jackett:
     image: lscr.io/linuxserver/jackett:latest
     container_name: jackett
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Santiago
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
     volumes:
       - jackett_config:/config
-      - /mnt/torrents:/downloads
+      - ./data:/data
     ports:
       - 9117:9117
     restart: unless-stopped
-    user: "${PUID}:${PGID}"
 
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Santiago
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
     volumes:
       - sonarr_config:/config
-      - ./media:/media
-      - ./torrents:/downloads
+      - ./data:/data
     ports:
       - 8989:8989
     restart: unless-stopped
-    user: "${PUID}:${PGID}"
 
   radarr:
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Santiago
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
     volumes:
       - radarr_config:/config
-      - ./media:/media
-      - ./torrents:/downloads
+      - ./data:/data
     ports:
       - 7878:7878
     restart: unless-stopped
-    user: "${PUID}:${PGID}"
 
   transmission:
     image: lscr.io/linuxserver/transmission:latest
     container_name: transmission
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Santiago
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - TRANSMISSION_DOWNLOAD_DIR=/data/downloads/complete
+      - TRANSMISSION_INCOMPLETE_DIR=/data/downloads/incomplete
     volumes:
       - transmission_config:/config
-      - /mnt/torrents:/downloads
+      - ./data:/data
     ports:
       - 9091:9091
       - 51413:51413
       - 51413:51413/udp
     restart: unless-stopped
-    user: "${PUID}:${PGID}"
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=info
+      - TZ=${TZ}
+    ports:
+      - 8191:8191
+    restart: unless-stopped
 
 volumes:
   jackett_config:
-  radarr_config:
   sonarr_config:
+  radarr_config:
   transmission_config:
