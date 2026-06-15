@@ -7,7 +7,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
       - VERSION=docker
-      - PLEX_CLAIM=claim-4EhVdfAZxqExjeAVMmEP
+      - PLEX_CLAIM=${PLEX_CLAIM:-}
     volumes:
       - plex_config:/config
       - ../media/data/media:/data/media:ro
