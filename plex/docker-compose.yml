@@ -7,8 +7,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
       - VERSION=docker
-      # PLEX_CLAIM is intentionally omitted; claim via https://app.plex.tv/claim
-      # using the token printed in `docker logs plex` (window ~4 minutes).
+      - PLEX_CLAIM=claim-4EhVdfAZxqExjeAVMmEP
     volumes:
       - plex_config:/config
       - ../media/data/media:/data/media:ro

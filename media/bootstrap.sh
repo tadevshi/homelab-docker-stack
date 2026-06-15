@@ -84,28 +84,34 @@ curl_post_json() {
 # --- Configure Jackett's global FlareSolverr URL (idempotent) -------------
 configure_jackett_flaresolverr() {
   echo "→ configuring FlareSolverr URL in Jackett"
-  # Health is verified in the main block via wait_for_url against the host-side
-  # $FLARESOLVERR_URL before this function is called. No internal wait needed
-  # (the in-container hostname is not resolvable from the host where the
-  # bootstrap runs).
 
   local current
-  current=$(curl -fsS -H "X-Api-Key: $JACKETT_API_KEY" "$JACKETT_URL/api/v2.0/server/config" 2>/dev/null) || {
-    echo "WARNING: failed to GET Jackett server config; skip FlareSolverr wiring" >&2
-    return 0
-  }
+  current=$(curl -fsS -H "X-Api-Key: $JACKETT_API_KEY" "$JACKETT_URL/api/v2.0/server/config" 2>/dev/null) || true
 
-  if echo "$current" | jq -e --arg u "$FLARESOLVERR_BASE_URL" '.flaresolverrurl == $u' >/dev/null 2>&1; then
+  if [[ -n "$current" ]] && echo "$current" | jq -e --arg u "$FLARESOLVERR_BASE_URL" '.FlareSolverrUrl == $u' >/dev/null 2>&1; then
     echo "✓ FlareSolverr URL already set in Jackett, skipping"
     return 0
   fi
 
-  local payload
-  payload=$(echo "$current" | jq --arg u "$FLARESOLVERR_BASE_URL" '.flaresolverrurl = $u')
-  if curl_post_json "$JACKETT_URL/api/v2.0/server/config" "$JACKETT_API_KEY" "$payload" >/dev/null; then
-    echo "✓ FlareSolverr URL set in Jackett to $FLARESOLVERR_BASE_URL"
+  if [[ -n "$current" ]]; then
+    local payload
+    payload=$(echo "$current" | jq --arg u "$FLARESOLVERR_BASE_URL" '.FlareSolverrUrl = $u')
+    if curl_post_json "$JACKETT_URL/api/v2.0/server/config" "$JACKETT_API_KEY" "$payload" >/dev/null; then
+      echo "✓ FlareSolverr URL set in Jackett to $FLARESOLVERR_BASE_URL"
+      return 0
+    fi
+  fi
+
+  echo "→ API unavailable, configuring via container config file"
+  if docker exec jackett sh -c "
+    sed -i 's|\"FlareSolverrUrl\": *null|\"FlareSolverrUrl\": \"$FLARESOLVERR_BASE_URL\"|;
+            s|\"FlareSolverrUrl\": *\"[^\"]*\"|\"FlareSolverrUrl\": \"$FLARESOLVERR_BASE_URL\"|' \
+      /config/Jackett/ServerConfig.json
+  " 2>/dev/null; then
+    docker restart jackett >/dev/null 2>&1
+    echo "✓ FlareSolverr URL set to $FLARESOLVERR_BASE_URL (via config file, Jackett restarted)"
   else
-    echo "WARNING: failed to set FlareSolverr URL via API. Set it manually in Jackett UI > Settings > Indexer > FlareSolverr URL = $FLARESOLVERR_BASE_URL" >&2
+    echo "WARNING: failed to set FlareSolverr URL. Set it manually in Jackett UI > Settings > FlareSolverr URL = $FLARESOLVERR_BASE_URL" >&2
   fi
 }
 
@@ -554,14 +560,28 @@ done
 
 echo "=== Media Bootstrap ==="
 
-wait_for_url "$SONARR_URL/api/v3/system/status"
-wait_for_url "$RADARR_URL/api/v3/system/status"
+echo "→ waiting for Sonarr (timeout 120s)"
+sonarr_tries=60
+until curl -fsS --max-time 5 -H "X-Api-Key: $SONARR_API_KEY" "$SONARR_URL/api/v3/system/status" >/dev/null 2>&1; do
+  sleep 2; sonarr_tries=$((sonarr_tries-2))
+  [[ $sonarr_tries -le 0 ]] && { echo "ERROR: timeout waiting for Sonarr" >&2; exit 1; }
+done
+echo "✓ Sonarr is responsive"
+
+echo "→ waiting for Radarr (timeout 120s)"
+radarr_tries=60
+until curl -fsS --max-time 5 -H "X-Api-Key: $RADARR_API_KEY" "$RADARR_URL/api/v3/system/status" >/dev/null 2>&1; do
+  sleep 2; radarr_tries=$((radarr_tries-2))
+  [[ $radarr_tries -le 0 ]] && { echo "ERROR: timeout waiting for Radarr" >&2; exit 1; }
+done
+echo "✓ Radarr is responsive"
+
 wait_for_url "$JACKETT_URL/api/v2.0/indexers?configured=true"
 
 # Transmission health: accept any 2xx/4xx as "up" (auth required on first call)
 echo "→ waiting for Transmission (timeout 120s)"
 tx_tries=60
-until curl -fsS -o /dev/null -w '%{http_code}' "$TRANSMISSION_URL/transmission/rpc" 2>/dev/null | grep -qE '^(2[0-9][0-9]|4[0-9][0-9])$'; do
+until curl -sS -o /dev/null -w '%{http_code}' "$TRANSMISSION_URL/transmission/rpc" 2>/dev/null | grep -qE '^(2[0-9][0-9]|4[0-9][0-9])$'; do
   sleep 2
   tx_tries=$((tx_tries - 1))
   [[ $tx_tries -le 0 ]] && { echo "ERROR: Transmission not responsive"; exit 1; }

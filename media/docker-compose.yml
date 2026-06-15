@@ -69,8 +69,23 @@ services:
       - 8191:8191
     restart: unless-stopped
 
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - bazarr_config:/config
+      - ./data:/data
+    ports:
+      - 6767:6767
+    restart: unless-stopped
+
 volumes:
   jackett_config:
   sonarr_config:
   radarr_config:
   transmission_config:
+  bazarr_config:
