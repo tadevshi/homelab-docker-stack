@@ -2,11 +2,16 @@ services:
   filebrowser:
     image: filebrowser/filebrowser:latest
     container_name: filebrowser
+    environment:
+      - FB_ROOT=/data
+      - PUID=${PUID}
+      - PGID=${PGID}
     volumes:
       - filebrowser_data:/database
       - filebrowser_config:/config
-      - ../media/data/media:/data/media:ro
+      - ../media/data/media:/data/media:rw
       - ../media/data/downloads:/data/downloads:rw
+      - /opt/homelab-docker-stack:/data/stack:rw
     ports:
       - 8080:80
     restart: unless-stopped
