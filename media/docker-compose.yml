@@ -6,6 +6,7 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
+      - AUTO_UPDATE=true
     volumes:
       - jackett_config:/config
       - ./data:/data
