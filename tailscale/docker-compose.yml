@@ -4,7 +4,7 @@ services:
     container_name: tailscale-homelab
     hostname: homelab-ts
     environment:
-      - TS_AUTHKEY=<tskey-YOUR-AUTH-KEY>
+      - TS_AUTHKEY=${TS_AUTHKEY:?Define TS_AUTHKEY in the root .env file}
       - TS_STATE_DIR=/var/lib/tailscale
     volumes:
       - ./tailscale-state:/var/lib/tailscale

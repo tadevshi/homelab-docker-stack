@@ -59,8 +59,8 @@ Tailscale runs as an additional standalone container that authenticates with you
 - **Tailscale** - Secure virtual private network for remote access
   - Runs as a standalone Docker container
   - Authenticates with your Tailscale account via auth key (`TS_AUTHKEY`)
-  - Connects all your homelab services to your tailnet, allowing secure remote access without port forwarding
-  - Access any service from anywhere using `https://<hostname>.tailnet.com`
+  - Adds this Tailscale container as a device in your tailnet
+  - By itself, it does not expose other Compose services or route your LAN; see setup notes below
 
 ### 🛠️ Productivity & Automation
 - **n8n** - Workflow automation tool
@@ -179,13 +179,12 @@ After generating your auth key:
    ```
 3. Visit https://console.tailscale.com to verify `homelab-ts` appears
 
-From any device connected to your tailnet, access services via their hostname (e.g., `https://jellyfin.homelab-ts.tailnet.com`)
+The Compose file connects only the Tailscale container to your tailnet. It does not automatically make other containers or the host's LAN reachable. For remote access to this homelab's services, configure this node as a subnet router and approve the advertised route in the Tailscale admin console, or use a dedicated Tailscale sidecar/reverse proxy for selected services. Then access services using their actual LAN IP/port or the configured proxy hostname.
 
 ### Authentication & Security
 - **n8n**: Basic authentication via environment variables
 - **Tailscale**: Authenticated using auth key from `TS_AUTHKEY`
 - All services run with non-root user (PUID/PGID) where possible
-- Plex: Configure `secureConnections` in Preferences.xml if you have SSL issues (see Troubleshooting)
 
 ## 📁 File Structure
 
@@ -264,21 +263,13 @@ Visit https://console.tailscale.com to manage your network and access services f
 
 After deployment, access services via `http://<HOMELAB_IP>:<port>` or `http://localhost:<port>`. Once connected to your tailnet, you can also reach any service using its hostname:
 
-| Service | Port | Local URL | Tailscale URL |
-|---------|------|-----------|---------------|
-| Homepage | 3001 | `http://<HOMELAB_IP>:3001` | `https://homelab-ts.tailnet.com` |
-| Grafana | 3000 | `http://<HOMELAB_IP>:3000` | `https://grafana.homelab-ts.tailnet.com` |
-| Portainer | 9000 | `http://<HOMELAB_IP>:9000` | `https://portainer.homelab-ts.tailnet.com` |
-| n8n | 5678 | `http://<HOMELAB_IP>:5678` | `https://n8n.homelab-ts.tailnet.com` |
-| Jellyfin | 8096 | `http://<HOMELAB_IP>:8096` | `https://jellyfin.homelab-ts.tailnet.com` |
-| FileBrowser | 8080 | `http://<HOMELAB_IP>:8080` | `https://filebrowser.homelab-ts.tailnet.com` |
-| Excalidraw | 5000 | `http://<HOMELAB_IP>:5000` | `https://excalidraw.homelab-ts.tailnet.com` |
-| Jackett | 9117 | `http://<HOMELAB_IP>:9117` | `https://jackett.homelab-ts.tailnet.com` |
-| Sonarr | 8989 | `http://<HOMELAB_IP>:8989` | `https://sonarr.homelab-ts.tailnet.com` |
-| Radarr | 7878 | `http://<HOMELAB_IP>:7878` | `https://radarr.homelab-ts.tailnet.com` |
-| Transmission | 9091 | `http://<HOMELAB_IP>:9091` | N/A (internal) |
+| Service | Port | Local URL |
+|---------|------|-----------|
+| Homepage | 3001 | `http://<HOMELAB_IP>:3001` |
+| Grafana | 3000 | `http://<HOMELAB_IP>:3000` |
+| Jellyfin | 8096 | `http://<HOMELAB_IP>:8096` |
 
-> **Note:** Tailscale service URLs use the hostname set in `docker-compose.yml` (`homelab-ts`) + `.tailnet.com`. Make sure your Tailscale node name is set correctly.
+Remote access requires configuring subnet routing or a service proxy; these URLs are not automatically created by the Tailscale container.
 
 ## 🤝 Contributing
 
@@ -304,10 +295,7 @@ This project is licensed under the MIT License — see the LICENSE file for deta
 
 ### Tailscale Issues
 
-**"TS_AUTHKEY not set"** — Set the auth key in `.env`:
-```bash
-export TS_AUTHKEY=tskey-YOUR-AUTH-KEY
-```
+**"TS_AUTHKEY not set"** — Define `TS_AUTHKEY=tskey-...` in the repository root `.env` file and run Compose with `--env-file .env`.
 
 **"Unable to connect to tailnet"** — Check that:
 1. The `TS_AUTHKEY` is valid and has permission for `homelab-ts`
